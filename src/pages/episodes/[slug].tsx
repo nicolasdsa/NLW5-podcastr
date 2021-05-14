@@ -1,47 +1,54 @@
-import { format, parseISO } from 'date-fns';
+import { GetStaticPaths, GetStaticProps } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useEffect } from 'react'
+
+import { format, parseISO } from 'date-fns'
 import ptBR from 'date-fns/locale/pt-BR'
-import Image from 'next/image';
-import Link from 'next/link';
-import Head from 'next/head';
 
-import { useRouter } from 'next/router'
-import next, { GetStaticPaths, GetStaticProps } from 'next';
+import api from '../../services/api'
+import { convertDurationToTimeString } from '@/utils/convertDurationToTimeString'
 
-import { api } from '../../services/api';
-import { convertDurationToTimeString } from '../../utils/convertDurationToTimeString';
+import { useGlobal } from '@/contexts/global'
+import { usePlayer } from '@/contexts/player'
 
-import styles from './episode.module.scss';
-import { usePlayer } from '../../contexts/PlayerContext';
+import { Container } from '@/styles/pages/Episode'
 
 type Episode = {
-  id: string;
-  title: string;
-  thumbnail: string;
-  members: string;
-  duration: number;
-  durationAsString: string;
-  url: string;
-  publishedAt: string;
-  description: string;
-};
+  id: string
+  title: string
+  thumbnail: string
+  members: string
+  duration: number
+  durationAsString: string
+  url: string
+  publishedAt: string
+  description: string
+}
 
 type EpisodeProps = {
-  episode: Episode;
+  episode: Episode
 }
 
 export default function Episode({ episode }: EpisodeProps) {
-  const { play } = usePlayer();
+  const { player, header } = useGlobal()
+  const { play } = usePlayer()
+
+  useEffect(() => {
+    player.set(true)
+    header.set(true)
+    return () => {
+      player.set(false)
+      header.set(false)
+    }
+  }, [])
 
   return (
-    <div className={styles.episode}>
-      <Head>
-        <title>{episode.title} | Podcastr</title>
-      </Head>
-
-      <div className={styles.thumbnailContainer}>
-        <Link href="/">
+    <Container>
+      <div className="thumbnailContainer">
+        <Link href="/dashboard">
           <button type="button">
-            <img src="/arrow-left.svg" alt="Voltar" />
+            <img src="/icons/arrow-left.svg" alt="Voltar" />
           </button>
         </Link>
         <Image
@@ -51,7 +58,7 @@ export default function Episode({ episode }: EpisodeProps) {
           objectFit="cover"
         />
         <button type="button" onClick={() => play(episode)}>
-          <img src="/play.svg" alt="Tocar episódio" />
+          <img src="/icons/play.svg" alt="Tocar episódio" />
         </button>
       </div>
 
@@ -62,16 +69,16 @@ export default function Episode({ episode }: EpisodeProps) {
         <span>{episode.durationAsString}</span>
       </header>
 
-      <div 
-        className={styles.description} 
+      <div
+        className="description"
         dangerouslySetInnerHTML={{ __html: episode.description }}
       />
-    </div>
+    </Container>
   )
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const { data } = await api.get('episodes', {
+  const { data } = await api.get('/episodes', {
     params: {
       _limit: 2,
       _sort: 'published_at',
@@ -79,13 +86,9 @@ export const getStaticPaths: GetStaticPaths = async () => {
     }
   })
 
-  const paths = data.map(episode => {
-    return {
-      params: {
-        slug: episode.id
-      }
-    }
-  })
+  const paths = data.map(episode => ({
+    params: { slug: episode.id }
+  }))
 
   return {
     paths,
@@ -93,8 +96,8 @@ export const getStaticPaths: GetStaticPaths = async () => {
   }
 }
 
-export const getStaticProps: GetStaticProps = async (ctx) => {
-  const { slug } = ctx.params;
+export const getStaticProps: GetStaticProps = async ctx => {
+  const { slug } = ctx.params
 
   const { data } = await api.get(`/episodes/${slug}`)
 
@@ -103,17 +106,19 @@ export const getStaticProps: GetStaticProps = async (ctx) => {
     title: data.title,
     thumbnail: data.thumbnail,
     members: data.members,
-    publishedAt: format(parseISO(data.published_at), 'd MMM yy', { locale: ptBR }),
+    publishedAt: format(parseISO(data.published_at), 'd MMM yy', {
+      locale: ptBR
+    }),
     duration: Number(data.file.duration),
     durationAsString: convertDurationToTimeString(Number(data.file.duration)),
     description: data.description,
-    url: data.file.url,
-  };
+    url: data.file.url
+  }
 
   return {
     props: {
-      episode,
+      episode
     },
-    revalidate: 60 * 60 * 24, // 24 hours
+    revalidate: 60 * 60 * 24
   }
 }

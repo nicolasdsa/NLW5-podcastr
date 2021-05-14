@@ -1,20 +1,34 @@
-import format from 'date-fns/format';
-import ptBR from 'date-fns/locale/pt-BR';
+import format from 'date-fns/format'
+import ptBR from 'date-fns/locale/pt-BR'
+import Link from 'next/link'
 
-import styles from './styles.module.scss';
+import ChangeTheme from '@/assets/sun.svg'
 
-export function Header() {
+import { useTheme } from '@/contexts/theme'
+import { Container } from './styles'
+
+function Header() {
   const currentDate = format(new Date(), 'EEEEEE, d MMMM', {
-    locale: ptBR,
-  });
+    locale: ptBR
+  })
 
+  const { theme, changeTheme } = useTheme()
+
+  function handleChangeThemeClick() {
+    changeTheme(theme.title === 'Dark' ? 'Light' : 'Dark')
+  }
   return (
-    <header className={styles.headerContainer}>
-      <img src="/logo.svg" alt="Podcastr" />
+    <Container>
+      <Link href="/">
+        <img src="/icons/logo.svg" alt="logo" />
+      </Link>
 
-      <p>O melhor para você ouvir, sempre</p>
+      <p>O melhor para você ouvir sempre</p>
 
       <span>{currentDate}</span>
-    </header>
-  );
+      <ChangeTheme onClick={handleChangeThemeClick} />
+    </Container>
+  )
 }
+
+export default Header
